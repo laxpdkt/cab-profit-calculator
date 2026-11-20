@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cab Profit Calculator</title>
+<meta name="description" content="How much does a cab driver really keep? Ride profit and true daily profit calculator: fuel, commission, maintenance, EMI and insurance.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* Same palette as the video: navy slate base, green = money in, red = money out, amber = warnings */
+  :root {
+    --bg: #F1F5F9; --card: #FFFFFF; --field: #F8FAFC; --line: #E2E8F0; --fg: #0F172A; --muted: #64748B;
+    --green: #16A34A; --green-deep: #0E8F55; --red: #DC2626; --amber: #D97706; --navy: #0F172A; --navy-line: #24324A; --on-dark: #E2E8F0; --on-dark-muted: #94A3B8;
+    --font: Inter, 'Segoe UI', Roboto, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0B1120; --card: #131C2E; --field: #0F172A; --line: #24324A; --fg: #F1F5F9; --muted: #94A3B8; --green: #22C55E; --red: #EF4444; --amber: #F59E0B; --navy: #0A0F1C; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-block: 24px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  h1 { margin: 0; font-size: clamp(24px, 4vw, 34px); font-weight: 900; letter-spacing: -0.02em; text-wrap: balance; }
+  header p { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+  .tabs { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 4px; }
+  .tabs button { border: 0; background: transparent; color: var(--muted); font: 700 14px var(--font); padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--navy); color: #fff; }
+  .tabs button:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+  .grid { display: grid; grid-template-columns: 1.05fr 1fr 1fr; gap: 18px; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr 1fr; } .metrics { grid-column: 1 / -1; } }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px; min-width: 0; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
+  input, select { width: 100%; min-width: 0; font: 600 16px var(--font); color: var(--fg); background: var(--field); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; font-variant-numeric: tabular-nums; }
+  .money { position: relative; } .money span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 600; } .money input { padding-left: 28px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { border: 1px solid var(--line); background: var(--field); color: var(--fg); border-radius: 8px; font: 600 12px var(--font); padding: 4px 9px; cursor: pointer; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .sumline { display: flex; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 16px; padding-top: 12px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sumline b { color: var(--fg); }
+  .hero { background: var(--green-deep); color: #fff; border: 0; display: flex; flex-direction: column; gap: 12px; }
+  .hero.loss { background: #B42318; }
+  .pill { align-self: flex-start; background: rgba(255,255,255,0.18); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; }
+  .big { font-size: clamp(46px, 7vw, 72px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .hero p { margin: 0; color: rgba(255,255,255,0.9); }
+  .verdict { margin-top: auto; background: rgba(0,0,0,0.16); border-radius: 14px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; }
+  .verdict .score { flex: 0 0 auto; background: #fff; color: var(--green-deep); border-radius: 999px; font-weight: 900; padding: 8px 12px; font-variant-numeric: tabular-nums; }
+  .hero.loss .verdict .score { color: #B42318; }
+  .verdict b { display: block; letter-spacing: 0.04em; } .verdict small { opacity: 0.85; }
+  .metrics { background: var(--navy); color: var(--on-dark); border-color: var(--navy-line); display: flex; flex-direction: column; }
+  .metrics .eyebrow { color: var(--on-dark-muted); }
+  .m { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--navy-line); }
+  .m span { color: var(--on-dark-muted); } .m b { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tip { margin-top: auto; padding-top: 16px; font-size: 13px; color: var(--on-dark-muted); }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; }
+  @media (max-width: 760px) { .tiles { grid-template-columns: 1fr 1fr; } }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; min-width: 0; }
+  .tile b { display: block; font-size: 22px; font-weight: 800; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+  .tile small { color: var(--muted); }
+  .formula { font-weight: 700; font-size: clamp(15px, 2.1vw, 20px); line-height: 2; text-align: center; overflow-x: auto; }
+  .frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.3; margin: 0 4px; }
+  .frac span:first-child { border-bottom: 2px solid currentColor; padding: 0 4px 2px; } .frac span:last-child { padding: 2px 4px 0; }
+  .new { color: var(--amber); } .new sup { font-size: 10px; background: var(--amber); color: #111; border-radius: 4px; padding: 1px 5px; margin-left: 4px; }
+  .day { display: grid; grid-template-columns: 1fr 1.2fr; gap: 18px; margin-top: 18px; }
+  @media (max-width: 860px) { .day { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td { padding: 11px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:last-child { text-align: right; font-weight: 800; font-size: 18px; white-space: nowrap; padding-left: 10px; }
+  td small { display: block; color: var(--muted); font-weight: 500; }
+  .pos { color: var(--green); } .neg { color: var(--red); }
+  .total td { border-bottom: 0; font-size: 20px; font-weight: 900; padding-top: 16px; } .total td:last-child { font-size: 30px; }
+  footer { margin-top: 26px; color: var(--muted); font-size: 12.5px; display: grid; gap: 4px; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: no-preference) { .big, .m b, .tile b, td:last-child { transition: color .2s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Cab Profit Calculator</h1>
+      <p>What a cab driver really keeps after the app's cut, fuel, maintenance, EMI and insurance. Change any number.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Calculator">
+      <button id="tab-ride" role="tab" aria-selected="true" aria-controls="ride">One ride</button>
+      <button id="tab-day" role="tab" aria-selected="false" aria-controls="day">Full day</button>
+    </div>
+  </header>
+
+  <!-- ============================== ONE RIDE ============================== -->
+  <section id="ride" role="tabpanel" aria-labelledby="tab-ride">
+    <div class="grid">
+      <div class="card">
+        <div class="eyebrow">Ride inputs</div>
+        <div class="row2">
+          <div><label for="r-comm">Platform cut %</label><input id="r-comm" type="number" min="0" max="60" step="0.5" value="22"></div>
+          <div><label for="r-veh">Vehicle</label>
+            <select id="r-veh">
+              <option value="cng">Cab / sedan · CNG</option>
+              <option value="petrol">Cab / sedan · Petrol</option>
+              <option value="diesel">Cab / sedan · Diesel</option>
+              <option value="ev">Cab / sedan · EV</option>
+            </select></div>
+        </div>
+        <label for="r-fare">Customer fare (₹)</label>
+        <div class="money"><span>₹</span><input id="r-fare" type="number" min="0" step="1" value="240"></div>
+        <div class="chips" id="fare-chips"><button class="chip">₹70</button><button class="chip">₹120</button><button class="chip">₹240</button><button class="chip">₹450</button></div>
+        <div class="row2">
+          <div><label for="r-km">Ride km</label><input id="r-km" type="number" min="0" step="0.1" value="15"></div>
+          <div><label for="r-pick">Pickup km (empty)</label><input id="r-pick" type="number" min="0" step="0.1" value="3"></div>
+        </div>
+        <label for="r-min">Ride time (minutes)</label><input id="r-min" type="number" min="1" step="1" value="30">
+        <div class="row2">
+          <div><label for="r-mil" id="r-mil-l">Mileage (km/kg)</label><input id="r-mil" type="number" min="0.1" step="0.1" value="18"></div>
+          <div><label for="r-price" id="r-price-l">Fuel price (₹/kg)</label><input id="r-price" type="number" min="0" step="0.01" value="99.50"></div>
+        </div>
+        <div class="row2">
+          <div><label for="r-mnt">Maintenance (₹/km)</label><input id="r-mnt" type="number" min="0" step="0.1" value="2.2"></div>
+          <div><label for="r-tgt">Your target (₹/km)</label><input id="r-tgt" type="number" min="0.1" step="0.1" value="5"></div>
+        </div>
+        <div class="hint" id="price-hint">Fuel price: Chennai, Oct 2026. Put in the price you pay.</div>
+        <div class="sumline"><span>Platform cut</span><b id="o-cut-s">₹0</b></div>
+      </div>
+
+      <div class="card hero" id="hero">
+        <span class="pill">NET PROFIT · THIS RIDE</span>
+        <div class="big" id="o-net">₹0</div>
+        <p id="o-expl"></p>
+        <div class="verdict">
+          <div class="score" id="o-score">0.0</div>
+          <div><b id="o-vtitle">—</b><small id="o-vsub"></small></div>
+        </div>
+      </div>
+
+      <div class="card metrics">
+        <div class="eyebrow">Efficiency</div>
+        <div class="m"><span>Profit per km</span><b id="o-pkm" class="pos">₹0</b></div>
+        <div class="m"><span>Hourly rate (est.)</span><b id="o-hr">₹0</b></div>
+        <div class="m"><span>Fuel burn rate</span><b id="o-burn" style="color:var(--amber)">₹0</b></div>
+        <div class="m"><span>Operating cost</span><b id="o-op">₹0</b></div>
+        <div class="tip" id="o-tip"></div>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="tile"><span class="eyebrow">Fuel cost</span><b id="t-fuel">₹0</b><small id="t-fuel-s"></small></div>
+      <div class="tile"><span class="eyebrow">Maintenance</span><b id="t-mnt">₹0</b><small id="t-mnt-s"></small></div>
+      <div class="tile"><span class="eyebrow">Empty km (deadhead)</span><b id="t-dead" class="neg">0 km</b><small id="t-dead-s"></small></div>
+      <div class="tile"><span class="eyebrow">Platform cut</span><b id="t-cut">₹0</b><small id="t-cut-s"></small></div>
+    </div>
+  </section>
+
+  <!-- ============================== FULL DAY ============================== -->
+  <section id="day" role="tabpanel" aria-labelledby="tab-day" hidden>
+    <div class="card">
+      <div class="eyebrow" style="text-align:center;margin-bottom:6px">True daily profit</div>
+      <div class="formula">
+        True Daily Profit = Net App Payout − ( <span class="frac"><span>Total KM</span><span>Real Mileage</span></span> × Fuel Price )
+        − (Total KM × Maintenance per km) − Daily EMI / Rent − <span class="new">Daily Insurance<sup>NEW</sup></span>
+      </div>
+    </div>
+    <div class="day">
+      <div class="card">
+        <div class="eyebrow">Your day</div>
+        <div class="row2">
+          <div><label for="d-earn">App earnings (₹)</label><input id="d-earn" type="number" min="0" step="1" value="2500"></div>
+          <div><label for="d-comm">Platform cut %</label><input id="d-comm" type="number" min="0" max="60" step="0.5" value="22"></div>
+        </div>
+        <div class="row2">
+          <div><label for="d-km">Total km</label><input id="d-km" type="number" min="0" step="1" value="150"></div>
+          <div><label for="d-mil">Real mileage (km per L / kg / unit)</label><input id="d-mil" type="number" min="0.1" step="0.1" value="15"></div>
+        </div>
+        <div class="row2">
+          <div><label for="d-price">Fuel price (₹)</label><input id="d-price" type="number" min="0" step="0.01" value="108"></div>
+          <div><label for="d-mnt">Maintenance (₹/km)</label><input id="d-mnt" type="number" min="0" step="0.1" value="1.5"></div>
+        </div>
+        <div class="row2">
+          <div><label for="d-emi">Daily EMI / rent (₹)</label><input id="d-emi" type="number" min="0" step="1" value="600"></div>
+          <div><label for="d-ins">Insurance per year (₹)</label><input id="d-ins" type="number" min="0" step="100" value="36500"></div>
+        </div>
+        <label for="d-days">Spread insurance over (days a year)</label><input id="d-days" type="number" min="1" max="366" step="1" value="365">
+        <div class="hint">Starts with the worked example from the video (petrol car). Put in your own numbers.</div>
+      </div>
+      <div class="card">
+        <div class="eyebrow">Worked out</div>
+        <table aria-label="True daily profit, step by step">
+          <tbody>
+            <tr><td>Net app payout<small id="w-pay-s"></small></td><td id="w-pay" class="pos"></td></tr>
+            <tr><td>Fuel<small id="w-fuel-s"></small></td><td id="w-fuel" class="neg"></td></tr>
+            <tr><td>Maintenance<small id="w-mnt-s"></small></td><td id="w-mnt" class="neg"></td></tr>
+            <tr><td>Daily EMI / rent<small>loan or rent, per day</small></td><td id="w-emi" class="neg"></td></tr>
+            <tr><td><span class="new">Daily insurance</span><small id="w-ins-s"></small></td><td id="w-ins" class="neg"></td></tr>
+            <tr class="total"><td>True daily profit<small id="w-note"></small></td><td id="w-true"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>Fuel prices in "One ride" are Chennai prices for Oct 2026 (petrol ₹107.77/L, diesel ₹99.55/L, CNG ₹99.50/kg; EV home charging ₹11.80/unit, TNERC top domestic slab). Mileages are examples. Change them to yours.</div>
+    <div>For information only, not financial advice. Your costs differ. From the Inflation Tracker channel.</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const num = (id) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : 0; };
+  const rs = (v, dp = 2) => (v < -0.005 ? '−' : '') + '₹' + Math.abs(v).toLocaleString('en-IN', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  const rs0 = (v) => rs(v, 0);
+  const pct = (v) => Math.round(v * 100) + '%';
+
+  // vehicle presets: example mileage + Chennai Oct 2026 price (Fuel.xlsx; EV = TNERC top domestic slab)
+  const VEH = {
+    cng: { mil: 18, unit: 'km/kg', price: 99.50, pu: 'kg' },
+    petrol: { mil: 15, unit: 'km/l', price: 107.77, pu: 'litre' },
+    diesel: { mil: 19, unit: 'km/l', price: 99.55, pu: 'litre' },
+    ev: { mil: 7, unit: 'km/kWh', price: 11.80, pu: 'unit' },
+  };
+  const applyVehicle = (keepValues) => {
+    const v = VEH[$('r-veh').value];
+    $('r-mil-l').textContent = `Mileage (${v.unit})`;
+    $('r-price-l').textContent = `Fuel price (₹/${v.pu})`;
+    if (!keepValues) { $('r-mil').value = v.mil; $('r-price').value = v.price.toFixed(2); }
+  };
+
+  function ride() {
+    const fare = num('r-fare'), comm = num('r-comm') / 100, km = num('r-km'), pick = num('r-pick'), mins = Math.max(1, num('r-min'));
+    const mil = Math.max(0.1, num('r-mil')), price = num('r-price'), mnt = num('r-mnt'), tgt = Math.max(0.1, num('r-tgt'));
+    const total = km + pick, unit = VEH[$('r-veh').value].unit;
+    const cut = Math.round(fare * comm), fuel = total / mil * price, maint = total * mnt, net = fare - cut - fuel - maint;
+    const perKm = total ? net / total : 0, perHr = net / (mins / 60), burn = total ? fuel / total : 0, op = total ? (fuel + maint) / total : 0;
+    $('o-net').textContent = rs(net);
+    $('o-expl').textContent = `Your in-hand earning after fuel (${rs(fuel)}), platform cut (${rs0(cut)}) and maintenance (${rs(maint)}).`;
+    $('o-cut-s').textContent = rs(cut);
+    $('o-pkm').textContent = rs(perKm) + ' / km'; $('o-pkm').className = perKm >= 0 ? 'pos' : 'neg';
+    $('o-hr').textContent = rs0(perHr) + ' / hr';
+    $('o-burn').textContent = rs(burn) + ' / km';
+    $('o-op').textContent = rs(op) + ' / km';
+    // verdict: profit per km against the driver's own target (score = share of target, out of 10)
+    const ratio = perKm / tgt, score = Math.max(0, Math.min(10, ratio * 10));
+    $('o-score').textContent = score.toFixed(1);
+    let title, sub, tip;
+    if (net < 0) { title = 'LOSS-MAKING RIDE'; sub = 'Costs more than it pays'; tip = `This ride loses ${rs(-net)}. Skip it unless the drop puts you in a busy area.`; }
+    else if (ratio >= 1) { title = 'GOOD RIDE'; sub = `Beats your ${rs(tgt)}/km target`; tip = `Above your target by ${rs(perKm - tgt)} per km.`; }
+    else if (ratio >= 0.6) { title = 'AVERAGE RIDE'; sub = 'Moderate margin'; tip = `Below your ${rs(tgt)}/km target. Worth taking if it ends near a busy zone.`; }
+    else { title = 'WEAK RIDE'; sub = 'Thin margin'; tip = `Well below your ${rs(tgt)}/km target. The empty km and fuel eat most of the fare.`; }
+    $('o-vtitle').textContent = title; $('o-vsub').textContent = sub; $('o-tip').textContent = tip;
+    $('hero').classList.toggle('loss', net < 0);
+    $('t-fuel').textContent = rs(fuel); $('t-fuel-s').textContent = `${+total.toFixed(1)} km ÷ ${mil} ${unit} × ${rs(price)}`;
+    $('t-mnt').textContent = rs(maint); $('t-mnt-s').textContent = `${rs(mnt)}/km reserve`;
+    $('t-dead').textContent = `${+pick.toFixed(1)} km`; $('t-dead-s').textContent = `${total ? pct(pick / total) : '0%'} unpaid travel`;
+    $('t-cut').textContent = rs(cut); $('t-cut-s').textContent = `${num('r-comm')}% of ${rs0(fare)}`;
+  }
+
+  function day() {
+    const earn = num('d-earn'), comm = num('d-comm') / 100, km = num('d-km'), mil = Math.max(0.1, num('d-mil')), price = num('d-price');
+    const mnt = num('d-mnt'), emi = num('d-emi'), ins = num('d-ins'), days = Math.max(1, num('d-days'));
+    const pay = earn - Math.round(earn * comm), fuel = km / mil * price, maint = km * mnt, insD = ins / days, tp = pay - fuel - maint - emi - insD;
+    $('w-pay').textContent = rs0(pay); $('w-pay-s').textContent = `${rs0(earn)} − ${num('d-comm')}% platform cut`;
+    $('w-fuel').textContent = '−' + rs0(fuel); $('w-fuel-s').textContent = `${km} km ÷ ${mil} × ${rs(price)}`;
+    $('w-mnt').textContent = '−' + rs0(maint); $('w-mnt-s').textContent = `${km} km × ${rs(mnt)}/km`;
+    $('w-emi').textContent = '−' + rs0(emi);
+    $('w-ins').textContent = '−' + rs0(insD); $('w-ins-s').textContent = `${rs0(ins)} a year ÷ ${days} days`;
+    $('w-true').textContent = rs0(tp); $('w-true').className = tp < 0 ? 'neg' : 'pos';
+    $('w-note').textContent = tp < 0 ? `A loss of ${rs0(-tp)} a day` : `Kept per day, after every cost`;
+  }
+
+  // remember the viewer's own numbers on this device (optional; works without it)
+  const IDS = ['r-comm', 'r-veh', 'r-fare', 'r-km', 'r-pick', 'r-min', 'r-mil', 'r-price', 'r-mnt', 'r-tgt', 'd-earn', 'd-comm', 'd-km', 'd-mil', 'd-price', 'd-mnt', 'd-emi', 'd-ins', 'd-days'];
+  const KEY = 'cab-profit-calculator-v1';
+  try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) IDS.forEach((id) => { if (saved[id] != null) $(id).value = saved[id]; }); } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(IDS.map((id) => [id, $(id).value])))); } catch (e) {} };
+
+  applyVehicle(true);
+  IDS.forEach((id) => $(id).addEventListener('input', () => { ride(); day(); save(); }));
+  $('r-veh').addEventListener('change', () => { applyVehicle(false); ride(); save(); });
+  $('fare-chips').addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (!b) return; $('r-fare').value = b.textContent.replace(/[^\d.]/g, ''); ride(); save(); });
+
+  const show = (which) => {
+    ['ride', 'day'].forEach((k) => { $(k).hidden = k !== which; $('tab-' + k).setAttribute('aria-selected', String(k === which)); });
+    try { history.replaceState(null, '', which === 'day' ? '#day' : '#ride'); } catch (e) {}
+  };
+  $('tab-ride').addEventListener('click', () => show('ride'));
+  $('tab-day').addEventListener('click', () => show('day'));
+  show(location.hash === '#day' ? 'day' : 'ride');
+  ride(); day();
+})();
+</script>
+</body>
+</html>
