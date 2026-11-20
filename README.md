@@ -1,5 +1,5 @@
 🧮 Try it with YOUR numbers – free Cab Profit Calculator:
-https://laxpdkt.github.io/cab-profit-calculator/
+https://sakas.in/
 
 • One ride: fare, pickup (empty) km, mileage, fuel price → your net profit, ₹ per km and ₹ per hour
 • Full day: True Daily Profit = Net App Payout − Fuel − Maintenance − EMI/Rent − Insurance
