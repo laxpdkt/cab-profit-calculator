@@ -3,206 +3,268 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cab Profit Calculator</title>
-<meta name="description" content="How much does a cab driver really keep? Ride profit and true daily profit calculator: fuel, commission, maintenance, EMI and insurance.">
+<title>Taxi Wallet Calculator</title>
+<meta name="description" content="How much does a cab driver really keep? Enter one ride or a full day: fuel, empty km, commission, maintenance, EMI and insurance. From the Inflation Tracker channel.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@400;600&family=Poppins:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
-  /* Same palette as the video: navy slate base, green = money in, red = money out, amber = warnings */
+  /* Taxi Wallet look (night cab dashboard, same as the video): one dark theme on purpose.
+     Layout: live wallet bar on top, then the dash screen (route map + meters) beside the trip sheet. */
   :root {
-    --bg: #F1F5F9; --card: #FFFFFF; --field: #F8FAFC; --line: #E2E8F0; --fg: #0F172A; --muted: #64748B;
-    --green: #16A34A; --green-deep: #0E8F55; --red: #DC2626; --amber: #D97706; --navy: #0F172A; --navy-line: #24324A; --on-dark: #E2E8F0; --on-dark-muted: #94A3B8;
-    --font: Inter, 'Segoe UI', Roboto, system-ui, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #0B1120; --card: #131C2E; --field: #0F172A; --line: #24324A; --fg: #F1F5F9; --muted: #94A3B8; --green: #22C55E; --red: #EF4444; --amber: #F59E0B; --navy: #0A0F1C; color-scheme: dark; }
+    color-scheme: dark;
+    --bg: #070B10; --dash: #0E141B; --panel: #0A1520; --panel2: #0D2232; --edge: #1D3446; --glow: #3FD0FF;
+    --amber: #FFB02E; --amber-dim: #7A5416; --red: #FF4D4D; --green: #38E07B; --grey: #C9D3DC; --white: #EEF4F8; --dim: #8AA0B2;
+    --paper: #F4EFE4; --ink: #1B2430; --taxi: #F6C21C; --road: #183248;
+    --f-text: Poppins, 'Segoe UI', system-ui, sans-serif; --f-led: 'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif; --f-mono: 'IBM Plex Mono', Consolas, monospace;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font); }
-  .wrap { max-width: 1180px; margin: 0 auto; padding-block: 24px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
-  h1 { margin: 0; font-size: clamp(24px, 4vw, 34px); font-weight: 900; letter-spacing: -0.02em; text-wrap: balance; }
-  header p { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
-  .tabs { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 4px; }
-  .tabs button { border: 0; background: transparent; color: var(--muted); font: 700 14px var(--font); padding: 8px 16px; border-radius: 999px; cursor: pointer; }
-  .tabs button[aria-selected="true"] { background: var(--navy); color: #fff; }
-  .tabs button:focus-visible, input:focus-visible, select:focus-visible, .chip:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
-  .grid { display: grid; grid-template-columns: 1.05fr 1fr 1fr; gap: 18px; }
-  @media (max-width: 980px) { .grid { grid-template-columns: 1fr 1fr; } .metrics { grid-column: 1 / -1; } }
-  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px; min-width: 0; }
-  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  label { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 14px 0 6px; }
-  input, select { width: 100%; min-width: 0; font: 600 16px var(--font); color: var(--fg); background: var(--field); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; font-variant-numeric: tabular-nums; }
-  .money { position: relative; } .money span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 600; } .money input { padding-left: 28px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .chip { border: 1px solid var(--line); background: var(--field); color: var(--fg); border-radius: 8px; font: 600 12px var(--font); padding: 4px 9px; cursor: pointer; }
-  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .sumline { display: flex; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 16px; padding-top: 12px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .sumline b { color: var(--fg); }
-  .hero { background: var(--green-deep); color: #fff; border: 0; display: flex; flex-direction: column; gap: 12px; }
-  .hero.loss { background: #B42318; }
-  .pill { align-self: flex-start; background: rgba(255,255,255,0.18); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; }
-  .big { font-size: clamp(46px, 7vw, 72px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
-  .hero p { margin: 0; color: rgba(255,255,255,0.9); }
-  .verdict { margin-top: auto; background: rgba(0,0,0,0.16); border-radius: 14px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; }
-  .verdict .score { flex: 0 0 auto; background: #fff; color: var(--green-deep); border-radius: 999px; font-weight: 900; padding: 8px 12px; font-variant-numeric: tabular-nums; }
-  .hero.loss .verdict .score { color: #B42318; }
-  .verdict b { display: block; letter-spacing: 0.04em; } .verdict small { opacity: 0.85; }
-  .metrics { background: var(--navy); color: var(--on-dark); border-color: var(--navy-line); display: flex; flex-direction: column; }
-  .metrics .eyebrow { color: var(--on-dark-muted); }
-  .m { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--navy-line); }
-  .m span { color: var(--on-dark-muted); } .m b { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .tip { margin-top: auto; padding-top: 16px; font-size: 13px; color: var(--on-dark-muted); }
-  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; }
-  @media (max-width: 760px) { .tiles { grid-template-columns: 1fr 1fr; } }
-  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; min-width: 0; }
-  .tile b { display: block; font-size: 22px; font-weight: 800; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
-  .tile small { color: var(--muted); }
-  .formula { font-weight: 700; font-size: clamp(15px, 2.1vw, 20px); line-height: 2; text-align: center; overflow-x: auto; }
-  .frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.3; margin: 0 4px; }
+  body { margin: 0; background: radial-gradient(ellipse at 50% 0%, #0E1720 0%, var(--bg) 60%) fixed, var(--bg); color: var(--white); font: 15px/1.45 var(--f-text); }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-block: 18px 36px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+  .mono { font-family: var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+  .led { font-family: var(--f-led); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+  /* ---- live wallet bar */
+  .wallet { display: grid; grid-template-columns: auto 1fr 1fr 1fr; align-items: stretch; background: linear-gradient(180deg, #05090D, #0A1219); border: 2px solid var(--amber-dim); border-radius: 20px; box-shadow: 0 0 28px #FFB02E22, inset 0 0 30px #000; overflow: hidden; }
+  .wallet .id { display: flex; gap: 14px; align-items: center; padding: 14px 20px; }
+  .wallet .id svg { flex: 0 0 auto; }
+  .wallet .id .mono { font-size: 12px; line-height: 1.7; color: var(--amber); }
+  .wallet .id .mono span { color: var(--dim); }
+  .cell { border-left: 2px solid var(--edge); padding: 12px 20px; min-width: 0; }
+  .cell .mono { font-size: 12px; color: var(--dim); }
+  .cell .led { font-size: clamp(34px, 5vw, 60px); margin-top: 4px; transition: text-shadow .2s, color .2s; }
+  .in .led { color: var(--green); text-shadow: 0 0 12px var(--green); }
+  .out .led { color: var(--red); text-shadow: 0 0 12px var(--red); }
+  .net .led { color: var(--amber); text-shadow: 0 0 12px var(--amber); }
+  .net.loss .led { color: var(--red); text-shadow: 0 0 14px var(--red); }
+  .flash .led { text-shadow: 0 0 34px currentColor; }
+  @media (max-width: 760px) { .wallet { grid-template-columns: 1fr 1fr 1fr; } .wallet .id { grid-column: 1 / -1; padding-bottom: 4px; } .cell { border-left: 0; border-top: 2px solid var(--edge); padding: 10px 12px; } }
+
+  /* ---- tabs */
+  .tabs { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .tabs h1 { margin: 0; font: 800 clamp(20px, 3vw, 28px)/1.1 var(--f-text); text-wrap: balance; }
+  .tabs h1 small { display: block; font: 500 13px var(--f-text); color: var(--dim); margin-top: 4px; }
+  .tablist { display: inline-flex; background: var(--dash); border: 2px solid var(--edge); border-radius: 999px; padding: 4px; }
+  .tablist button { border: 0; background: transparent; padding: 8px 16px; border-radius: 999px; cursor: pointer; color: var(--dim); font-family: var(--f-mono); font-size: 13px; letter-spacing: 0.12em; }
+  .tablist button[aria-selected="true"] { background: var(--amber); color: #1A1000; font-weight: 600; }
+
+  /* ---- dash screen panels */
+  .screen { position: relative; background: radial-gradient(ellipse at 50% 35%, #102434 0%, var(--panel) 60%, #061018 100%); border: 2px solid var(--edge); border-radius: 24px; box-shadow: 0 0 40px #3FD0FF1A, inset 0 0 60px #000A; padding: 18px; min-width: 0; overflow: hidden; }
+  .screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, #FFFFFF05 0 2px, transparent 2px 5px); }
+  .screen > .tag { font-size: 12px; color: var(--glow); margin-bottom: 12px; display: flex; justify-content: space-between; gap: 8px; }
+  .ride-grid { display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 980px) { .ride-grid { grid-template-columns: 1fr; } }
+
+  /* trip sheet (inputs) */
+  .sheet label { display: block; font: 600 11px var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); margin: 12px 0 5px; }
+  .sheet .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sheet input, .sheet select { width: 100%; min-width: 0; background: #061018; border: 2px solid #24404F; border-radius: 10px; color: var(--white); padding: 9px 11px; font: 700 22px var(--f-led); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+  .sheet select { font: 600 14px var(--f-mono); padding: 11px; }
+  .sheet input:focus { border-color: var(--amber); outline: none; box-shadow: 0 0 0 3px #FFB02E33; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+  .chip { border: 1px solid #24404F; background: #0D2232; border-radius: 8px; padding: 3px 9px; font: 600 12px var(--f-mono); cursor: pointer; color: var(--white); }
+  .chip:hover { border-color: var(--amber); }
+  .note { font: 400 11.5px/1.5 var(--f-mono); color: var(--dim); margin-top: 10px; }
+  .go { margin-top: 14px; width: 100%; border: 0; border-radius: 12px; padding: 12px; cursor: pointer; background: var(--amber); color: #1A1000; font: 800 16px var(--f-text); }
+
+  /* nav screen: map + meters */
+  .nav { display: grid; grid-template-columns: 1fr 200px; gap: 14px; align-items: start; }
+  @media (max-width: 640px) { .nav { grid-template-columns: 1fr; } }
+  .map { width: 100%; height: auto; display: block; border-radius: 16px; background: #0B1B28; border: 2px solid #163246; }
+  .meters { display: grid; gap: 10px; }
+  @media (max-width: 640px) { .meters { grid-template-columns: repeat(3, 1fr); } }
+  .meter .mono { font-size: 11px; color: var(--dim); }
+  .meter .led { font-size: 46px; }
+  .status { position: relative; z-index: 1; margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  .status .mono { font-size: 12px; color: var(--grey); }
+  .replay { border: 2px solid var(--edge); background: #0D2232; border-radius: 10px; padding: 6px 12px; cursor: pointer; font: 600 12px var(--f-mono); letter-spacing: 0.1em; color: var(--glow); }
+
+  /* results row: trip slip + efficiency */
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; position: relative; z-index: 1; }
+  @media (max-width: 760px) { .results { grid-template-columns: 1fr; } }
+  .slip { background: var(--paper); color: var(--ink); border-radius: 6px 6px 0 0; padding: 14px 18px 22px; font-family: var(--f-mono); position: relative; box-shadow: 0 10px 24px #0008; }
+  .slip::after { content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: linear-gradient(-45deg, transparent 7px, var(--paper) 0) 0 0 / 14px 10px, linear-gradient(45deg, transparent 7px, var(--paper) 0) 0 0 / 14px 10px; }
+  .slip h3 { margin: 0 0 8px; font: 600 12px var(--f-mono); letter-spacing: 0.16em; color: #6B7480; }
+  .slip .ln { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px dashed #C9C2B3; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .slip .ln small { display: block; color: #6B7480; font-size: 11px; }
+  .slip .ln b { white-space: nowrap; }
+  .slip .neg { color: #B42318; } .slip .pos { color: #0E7A3C; }
+  .slip .tot { border-bottom: 0; padding-top: 10px; font-size: 17px; font-weight: 600; }
+  .slip .tot b { font-size: 22px; }
+  .stamp { position: absolute; right: 14px; top: 6px; transform: rotate(-9deg); border: 4px solid var(--amber); border-radius: 10px; padding: 2px 10px; background: #1A1205E6; color: var(--amber); font-family: var(--f-led); font-weight: 800; font-size: 26px; opacity: 0; transition: opacity .3s, transform .3s; }
+  .stamp.on { opacity: 1; transform: rotate(-9deg) scale(1); }
+  .stamp.loss { border-color: var(--red); color: var(--red); }
+  .eff { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: start; }
+  .tile { background: var(--panel2); border: 2px solid var(--edge); border-radius: 14px; padding: 10px 14px; min-width: 0; }
+  .tile .mono { font-size: 11px; color: var(--dim); }
+  .tile .led { font-size: 36px; margin-top: 4px; }
+  .verdict { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; border-radius: 14px; padding: 10px 14px; border: 2px solid var(--amber); background: #1A1205; }
+  .verdict .score { font-size: 40px; color: var(--amber); }
+  .verdict b { display: block; font: 800 15px var(--f-text); }
+  .verdict span { font-size: 13px; color: var(--dim); }
+  .verdict.good { border-color: var(--green); background: #071A0F; } .verdict.good .score { color: var(--green); }
+  .verdict.bad { border-color: var(--red); background: #1F0A0C; } .verdict.bad .score { color: var(--red); }
+
+  /* full day */
+  .formula { position: relative; z-index: 1; text-align: center; font: 700 clamp(14px, 2vw, 21px)/2 var(--f-text); overflow-x: auto; }
+  .formula .k { color: var(--amber); }
+  .frac { display: inline-flex; flex-direction: column; vertical-align: middle; line-height: 1.3; margin: 0 4px; }
   .frac span:first-child { border-bottom: 2px solid currentColor; padding: 0 4px 2px; } .frac span:last-child { padding: 2px 4px 0; }
-  .new { color: var(--amber); } .new sup { font-size: 10px; background: var(--amber); color: #111; border-radius: 4px; padding: 1px 5px; margin-left: 4px; }
-  .day { display: grid; grid-template-columns: 1fr 1.2fr; gap: 18px; margin-top: 18px; }
-  @media (max-width: 860px) { .day { grid-template-columns: 1fr; } }
-  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-  td { padding: 11px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-  td:last-child { text-align: right; font-weight: 800; font-size: 18px; white-space: nowrap; padding-left: 10px; }
-  td small { display: block; color: var(--muted); font-weight: 500; }
-  .pos { color: var(--green); } .neg { color: var(--red); }
-  .total td { border-bottom: 0; font-size: 20px; font-weight: 900; padding-top: 16px; } .total td:last-child { font-size: 30px; }
-  footer { margin-top: 26px; color: var(--muted); font-size: 12.5px; display: grid; gap: 4px; }
+  .newterm { color: var(--amber); text-shadow: 0 0 10px #FFB02E88; }
+  .newterm sup { font: 600 10px var(--f-mono); background: var(--amber); color: #1A1000; border-radius: 4px; padding: 1px 5px; margin-left: 4px; }
+  .day-grid { display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .day-grid { grid-template-columns: 1fr; } }
+
+  footer { color: var(--dim); font: 400 11.5px/1.6 var(--f-mono); display: grid; gap: 4px; }
   [hidden] { display: none !important; }
-  @media (prefers-reduced-motion: no-preference) { .big, .m b, .tile b, td:last-child { transition: color .2s; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div>
-      <h1>Cab Profit Calculator</h1>
-      <p>What a cab driver really keeps after the app's cut, fuel, maintenance, EMI and insurance. Change any number.</p>
+
+  <!-- ===================== LIVE WALLET ===================== -->
+  <div class="wallet" aria-live="polite">
+    <div class="id">
+      <svg width="64" height="52" viewBox="0 0 96 76" aria-hidden="true">
+        <rect x="16" y="2" width="58" height="18" rx="3" fill="#5fae62" transform="rotate(-6 45 11)"/>
+        <rect x="4" y="12" width="86" height="60" rx="12" fill="#8a4520" stroke="#ffb02e" stroke-width="3"/>
+        <path d="M4 30 H70 Q90 30 90 42 V52 Q90 62 70 62 H4" fill="#6e3418" stroke="#ffb02e" stroke-width="3"/>
+        <circle cx="72" cy="46" r="6" fill="#ffb02e"/>
+      </svg>
+      <div class="mono">Live wallet<br><span id="w-mode">One ride</span></div>
     </div>
-    <div class="tabs" role="tablist" aria-label="Calculator">
+    <div class="cell in" id="c-in"><div class="mono" id="l-in">Fare in</div><div class="led" id="v-in">+₹0</div></div>
+    <div class="cell out" id="c-out"><div class="mono">Costs out</div><div class="led" id="v-out">−₹0</div></div>
+    <div class="cell net" id="c-net"><div class="mono">You keep</div><div class="led" id="v-net">₹0</div></div>
+  </div>
+
+  <div class="tabs">
+    <h1>Taxi Wallet Calculator<small>What a cab driver really keeps. Enter your numbers and watch the trip run.</small></h1>
+    <div class="tablist" role="tablist" aria-label="Calculator">
       <button id="tab-ride" role="tab" aria-selected="true" aria-controls="ride">One ride</button>
       <button id="tab-day" role="tab" aria-selected="false" aria-controls="day">Full day</button>
     </div>
-  </header>
+  </div>
 
-  <!-- ============================== ONE RIDE ============================== -->
-  <section id="ride" role="tabpanel" aria-labelledby="tab-ride">
-    <div class="grid">
-      <div class="card">
-        <div class="eyebrow">Ride inputs</div>
-        <div class="row2">
-          <div><label for="r-comm">Platform cut %</label><input id="r-comm" type="number" min="0" max="60" step="0.5" value="22"></div>
-          <div><label for="r-veh">Vehicle</label>
-            <select id="r-veh">
-              <option value="cng">Cab / sedan · CNG</option>
-              <option value="petrol">Cab / sedan · Petrol</option>
-              <option value="diesel">Cab / sedan · Diesel</option>
-              <option value="ev">Cab / sedan · EV</option>
-            </select></div>
-        </div>
-        <label for="r-fare">Customer fare (₹)</label>
-        <div class="money"><span>₹</span><input id="r-fare" type="number" min="0" step="1" value="240"></div>
-        <div class="chips" id="fare-chips"><button class="chip">₹70</button><button class="chip">₹120</button><button class="chip">₹240</button><button class="chip">₹450</button></div>
-        <div class="row2">
-          <div><label for="r-km">Ride km</label><input id="r-km" type="number" min="0" step="0.1" value="15"></div>
-          <div><label for="r-pick">Pickup km (empty)</label><input id="r-pick" type="number" min="0" step="0.1" value="3"></div>
-        </div>
-        <label for="r-min">Ride time (minutes)</label><input id="r-min" type="number" min="1" step="1" value="30">
-        <div class="row2">
-          <div><label for="r-mil" id="r-mil-l">Mileage (km/kg)</label><input id="r-mil" type="number" min="0.1" step="0.1" value="18"></div>
-          <div><label for="r-price" id="r-price-l">Fuel price (₹/kg)</label><input id="r-price" type="number" min="0" step="0.01" value="99.50"></div>
-        </div>
-        <div class="row2">
-          <div><label for="r-mnt">Maintenance (₹/km)</label><input id="r-mnt" type="number" min="0" step="0.1" value="2.2"></div>
-          <div><label for="r-tgt">Your target (₹/km)</label><input id="r-tgt" type="number" min="0.1" step="0.1" value="5"></div>
-        </div>
-        <div class="hint" id="price-hint">Fuel price: Chennai, Oct 2026. Put in the price you pay.</div>
-        <div class="sumline"><span>Platform cut</span><b id="o-cut-s">₹0</b></div>
+  <!-- ===================== ONE RIDE ===================== -->
+  <section id="ride" role="tabpanel" aria-labelledby="tab-ride" class="ride-grid">
+    <div class="screen sheet">
+      <div class="tag mono"><span>Trip sheet</span><span style="color:var(--dim)">enter your ride</span></div>
+      <label for="r-fare">Customer fare (₹)</label>
+      <input id="r-fare" type="number" inputmode="decimal" min="0" step="1" value="240">
+      <div class="chips" id="fare-chips"><button class="chip">₹70</button><button class="chip">₹120</button><button class="chip">₹240</button><button class="chip">₹450</button></div>
+      <div class="two">
+        <div><label for="r-pick">Pickup km (empty)</label><input id="r-pick" type="number" inputmode="decimal" min="0" step="0.1" value="3"></div>
+        <div><label for="r-km">Ride km (paid)</label><input id="r-km" type="number" inputmode="decimal" min="0" step="0.1" value="15"></div>
       </div>
-
-      <div class="card hero" id="hero">
-        <span class="pill">NET PROFIT · THIS RIDE</span>
-        <div class="big" id="o-net">₹0</div>
-        <p id="o-expl"></p>
-        <div class="verdict">
-          <div class="score" id="o-score">0.0</div>
-          <div><b id="o-vtitle">—</b><small id="o-vsub"></small></div>
-        </div>
+      <div class="two">
+        <div><label for="r-min">Ride time (min)</label><input id="r-min" type="number" inputmode="decimal" min="1" step="1" value="30"></div>
+        <div><label for="r-comm">App cut %</label><input id="r-comm" type="number" inputmode="decimal" min="0" max="60" step="0.5" value="22"></div>
       </div>
-
-      <div class="card metrics">
-        <div class="eyebrow">Efficiency</div>
-        <div class="m"><span>Profit per km</span><b id="o-pkm" class="pos">₹0</b></div>
-        <div class="m"><span>Hourly rate (est.)</span><b id="o-hr">₹0</b></div>
-        <div class="m"><span>Fuel burn rate</span><b id="o-burn" style="color:var(--amber)">₹0</b></div>
-        <div class="m"><span>Operating cost</span><b id="o-op">₹0</b></div>
-        <div class="tip" id="o-tip"></div>
+      <label for="r-veh">Fuel</label>
+      <select id="r-veh">
+        <option value="cng">CNG</option>
+        <option value="petrol">Petrol</option>
+        <option value="diesel">Diesel</option>
+        <option value="ev">EV (home charging)</option>
+      </select>
+      <div class="two">
+        <div><label for="r-mil" id="r-mil-l">Mileage km/kg</label><input id="r-mil" type="number" inputmode="decimal" min="0.1" step="0.1" value="18"></div>
+        <div><label for="r-price" id="r-price-l">Price ₹/kg</label><input id="r-price" type="number" inputmode="decimal" min="0" step="0.01" value="99.50"></div>
       </div>
+      <div class="two">
+        <div><label for="r-mnt">Upkeep ₹/km</label><input id="r-mnt" type="number" inputmode="decimal" min="0" step="0.1" value="2.2"></div>
+        <div><label for="r-tgt">Target ₹/km</label><input id="r-tgt" type="number" inputmode="decimal" min="0.1" step="0.1" value="5"></div>
+      </div>
+      <div class="note">Fuel prices: Chennai, Oct 2026. Mileage is an example. Put in yours.</div>
+      <button class="go" id="go">Run this trip</button>
     </div>
-    <div class="tiles">
-      <div class="tile"><span class="eyebrow">Fuel cost</span><b id="t-fuel">₹0</b><small id="t-fuel-s"></small></div>
-      <div class="tile"><span class="eyebrow">Maintenance</span><b id="t-mnt">₹0</b><small id="t-mnt-s"></small></div>
-      <div class="tile"><span class="eyebrow">Empty km (deadhead)</span><b id="t-dead" class="neg">0 km</b><small id="t-dead-s"></small></div>
-      <div class="tile"><span class="eyebrow">Platform cut</span><b id="t-cut">₹0</b><small id="t-cut-s"></small></div>
+
+    <div class="screen">
+      <div class="tag mono"><span>Nav · deadhead</span><span id="phase" style="color:var(--amber)">Ready</span></div>
+      <div class="nav">
+        <svg class="map" id="map" viewBox="0 0 640 380" role="img" aria-label="Route map: empty pickup run and paid ride"></svg>
+        <div class="meters">
+          <div class="meter"><div class="mono">Paid km</div><div class="led" id="m-paid" style="color:var(--amber);text-shadow:0 0 12px var(--amber)">0</div></div>
+          <div class="meter"><div class="mono">Empty km</div><div class="led" id="m-empty" style="color:var(--grey)">0</div></div>
+          <div class="meter"><div class="mono">Fuel used</div><div class="led" id="m-fuel" style="color:var(--red);text-shadow:0 0 10px var(--red)">₹0</div></div>
+        </div>
+      </div>
+      <div class="status"><span class="mono" id="statusline">Enter a ride on the trip sheet</span><button class="replay" id="replay">↻ Replay</button></div>
+
+      <div class="results">
+        <div class="slip" id="slip">
+          <h3>Trip slip</h3>
+          <div class="ln"><span>Fare</span><b class="pos" id="s-fare"></b></div>
+          <div class="ln"><span>App cut<small id="s-cut-s"></small></span><b class="neg" id="s-cut"></b></div>
+          <div class="ln"><span>Fuel<small id="s-fuel-s"></small></span><b class="neg" id="s-fuel"></b></div>
+          <div class="ln"><span>Upkeep<small id="s-mnt-s"></small></span><b class="neg" id="s-mnt"></b></div>
+          <div class="ln tot"><span>You keep</span><b id="s-net"></b></div>
+          <div class="stamp" id="stamp">KEEPS ₹0</div>
+        </div>
+        <div class="eff">
+          <div class="tile"><div class="mono">Profit / km</div><div class="led" id="e-pkm">₹0</div></div>
+          <div class="tile"><div class="mono">Per hour (est.)</div><div class="led" id="e-hr">₹0</div></div>
+          <div class="tile"><div class="mono">Fuel / km</div><div class="led" id="e-burn" style="color:var(--amber)">₹0</div></div>
+          <div class="tile"><div class="mono">Cost / km</div><div class="led" id="e-op">₹0</div></div>
+          <div class="verdict" id="verdict"><div class="led score" id="v-score">0.0</div><div><b id="v-title">—</b><span id="v-sub"></span></div></div>
+        </div>
+      </div>
     </div>
   </section>
 
-  <!-- ============================== FULL DAY ============================== -->
+  <!-- ===================== FULL DAY ===================== -->
   <section id="day" role="tabpanel" aria-labelledby="tab-day" hidden>
-    <div class="card">
-      <div class="eyebrow" style="text-align:center;margin-bottom:6px">True daily profit</div>
+    <div class="screen" style="margin-bottom:16px">
+      <div class="tag mono"><span>True profit</span><span style="color:var(--dim)">every cost, every day</span></div>
       <div class="formula">
-        True Daily Profit = Net App Payout − ( <span class="frac"><span>Total KM</span><span>Real Mileage</span></span> × Fuel Price )
-        − (Total KM × Maintenance per km) − Daily EMI / Rent − <span class="new">Daily Insurance<sup>NEW</sup></span>
+        <span class="k">True Daily Profit</span> = Net App Payout − ( <span class="frac"><span>Total KM</span><span>Real Mileage</span></span> × Fuel Price )
+        − (Total KM × Maintenance per km) − Daily EMI / Rent − <span class="newterm">Daily Insurance<sup>NEW</sup></span>
       </div>
     </div>
-    <div class="day">
-      <div class="card">
-        <div class="eyebrow">Your day</div>
-        <div class="row2">
-          <div><label for="d-earn">App earnings (₹)</label><input id="d-earn" type="number" min="0" step="1" value="2500"></div>
-          <div><label for="d-comm">Platform cut %</label><input id="d-comm" type="number" min="0" max="60" step="0.5" value="22"></div>
+    <div class="day-grid">
+      <div class="screen sheet">
+        <div class="tag mono"><span>Day sheet</span><span style="color:var(--dim)">your whole day</span></div>
+        <div class="two">
+          <div><label for="d-earn">App earnings ₹</label><input id="d-earn" type="number" inputmode="decimal" min="0" step="1" value="2500"></div>
+          <div><label for="d-comm">App cut %</label><input id="d-comm" type="number" inputmode="decimal" min="0" max="60" step="0.5" value="22"></div>
         </div>
-        <div class="row2">
-          <div><label for="d-km">Total km</label><input id="d-km" type="number" min="0" step="1" value="150"></div>
-          <div><label for="d-mil">Real mileage (km per L / kg / unit)</label><input id="d-mil" type="number" min="0.1" step="0.1" value="15"></div>
+        <div class="two">
+          <div><label for="d-km">Total km</label><input id="d-km" type="number" inputmode="decimal" min="0" step="1" value="150"></div>
+          <div><label for="d-mil">Real mileage</label><input id="d-mil" type="number" inputmode="decimal" min="0.1" step="0.1" value="15"></div>
         </div>
-        <div class="row2">
-          <div><label for="d-price">Fuel price (₹)</label><input id="d-price" type="number" min="0" step="0.01" value="108"></div>
-          <div><label for="d-mnt">Maintenance (₹/km)</label><input id="d-mnt" type="number" min="0" step="0.1" value="1.5"></div>
+        <div class="two">
+          <div><label for="d-price">Fuel price ₹</label><input id="d-price" type="number" inputmode="decimal" min="0" step="0.01" value="108"></div>
+          <div><label for="d-mnt">Upkeep ₹/km</label><input id="d-mnt" type="number" inputmode="decimal" min="0" step="0.1" value="1.5"></div>
         </div>
-        <div class="row2">
-          <div><label for="d-emi">Daily EMI / rent (₹)</label><input id="d-emi" type="number" min="0" step="1" value="600"></div>
-          <div><label for="d-ins">Insurance per year (₹)</label><input id="d-ins" type="number" min="0" step="100" value="36500"></div>
+        <div class="two">
+          <div><label for="d-emi">EMI / rent ₹ a day</label><input id="d-emi" type="number" inputmode="decimal" min="0" step="1" value="600"></div>
+          <div><label for="d-ins">Insurance ₹ a year</label><input id="d-ins" type="number" inputmode="decimal" min="0" step="100" value="36500"></div>
         </div>
-        <label for="d-days">Spread insurance over (days a year)</label><input id="d-days" type="number" min="1" max="366" step="1" value="365">
-        <div class="hint">Starts with the worked example from the video (petrol car). Put in your own numbers.</div>
+        <label for="d-days">Insurance spread over (days)</label><input id="d-days" type="number" inputmode="decimal" min="1" max="366" step="1" value="365">
+        <div class="note">Starts with the video's worked example (petrol car). Put in your own day.</div>
       </div>
-      <div class="card">
-        <div class="eyebrow">Worked out</div>
-        <table aria-label="True daily profit, step by step">
-          <tbody>
-            <tr><td>Net app payout<small id="w-pay-s"></small></td><td id="w-pay" class="pos"></td></tr>
-            <tr><td>Fuel<small id="w-fuel-s"></small></td><td id="w-fuel" class="neg"></td></tr>
-            <tr><td>Maintenance<small id="w-mnt-s"></small></td><td id="w-mnt" class="neg"></td></tr>
-            <tr><td>Daily EMI / rent<small>loan or rent, per day</small></td><td id="w-emi" class="neg"></td></tr>
-            <tr><td><span class="new">Daily insurance</span><small id="w-ins-s"></small></td><td id="w-ins" class="neg"></td></tr>
-            <tr class="total"><td>True daily profit<small id="w-note"></small></td><td id="w-true"></td></tr>
-          </tbody>
-        </table>
+      <div class="screen">
+        <div class="tag mono"><span>Day slip</span><span id="d-phase" style="color:var(--amber)"></span></div>
+        <div class="slip" style="position:relative;z-index:1">
+          <h3>True daily profit</h3>
+          <div class="ln"><span>Net app payout<small id="w-pay-s"></small></span><b class="pos" id="w-pay"></b></div>
+          <div class="ln"><span>Fuel<small id="w-fuel-s"></small></span><b class="neg" id="w-fuel"></b></div>
+          <div class="ln"><span>Upkeep<small id="w-mnt-s"></small></span><b class="neg" id="w-mnt"></b></div>
+          <div class="ln"><span>EMI / rent<small>per day</small></span><b class="neg" id="w-emi"></b></div>
+          <div class="ln"><span style="color:#9A5B00">Insurance<small id="w-ins-s"></small></span><b class="neg" id="w-ins"></b></div>
+          <div class="ln tot"><span>True daily profit<small id="w-note"></small></span><b id="w-true"></b></div>
+          <div class="stamp on" id="d-stamp">₹0</div>
+        </div>
       </div>
     </div>
   </section>
 
   <footer>
-    <div>Fuel prices in "One ride" are Chennai prices for Oct 2026 (petrol ₹107.77/L, diesel ₹99.55/L, CNG ₹99.50/kg; EV home charging ₹11.80/unit, TNERC top domestic slab). Mileages are examples. Change them to yours.</div>
-    <div>For information only, not financial advice. Your costs differ. From the Inflation Tracker channel.</div>
+    <div>Fuel prices (One ride): Chennai, Oct 2026 — petrol ₹107.77/L, diesel ₹99.55/L, CNG ₹99.50/kg; EV home charging ₹11.80/unit (TNERC top domestic slab). Mileages are examples. Change any number to yours.</div>
+    <div>For information only, not financial advice. Your costs differ. Inflation Tracker.</div>
   </footer>
 </div>
 
@@ -212,83 +274,189 @@
   const num = (id) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : 0; };
   const rs = (v, dp = 2) => (v < -0.005 ? '−' : '') + '₹' + Math.abs(v).toLocaleString('en-IN', { minimumFractionDigits: dp, maximumFractionDigits: dp });
   const rs0 = (v) => rs(v, 0);
-  const pct = (v) => Math.round(v * 100) + '%';
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // vehicle presets: example mileage + Chennai Oct 2026 price (Fuel.xlsx; EV = TNERC top domestic slab)
-  const VEH = {
-    cng: { mil: 18, unit: 'km/kg', price: 99.50, pu: 'kg' },
-    petrol: { mil: 15, unit: 'km/l', price: 107.77, pu: 'litre' },
-    diesel: { mil: 19, unit: 'km/l', price: 99.55, pu: 'litre' },
-    ev: { mil: 7, unit: 'km/kWh', price: 11.80, pu: 'unit' },
-  };
-  const applyVehicle = (keepValues) => {
-    const v = VEH[$('r-veh').value];
-    $('r-mil-l').textContent = `Mileage (${v.unit})`;
-    $('r-price-l').textContent = `Fuel price (₹/${v.pu})`;
-    if (!keepValues) { $('r-mil').value = v.mil; $('r-price').value = v.price.toFixed(2); }
-  };
+  // fuel presets: example mileage + Chennai Oct 2026 price (Fuel.xlsx; EV = TNERC top domestic slab)
+  const VEH = { cng: { mil: 18, mu: 'km/kg', price: 99.50, pu: 'kg' }, petrol: { mil: 15, mu: 'km/L', price: 107.77, pu: 'L' }, diesel: { mil: 19, mu: 'km/L', price: 99.55, pu: 'L' }, ev: { mil: 7, mu: 'km/unit', price: 11.80, pu: 'unit' } };
+  const applyVehicle = (fill) => { const v = VEH[$('r-veh').value]; $('r-mil-l').textContent = 'Mileage ' + v.mu; $('r-price-l').textContent = 'Price ₹/' + v.pu; if (fill) { $('r-mil').value = v.mil; $('r-price').value = v.price.toFixed(2); } };
 
-  function ride() {
-    const fare = num('r-fare'), comm = num('r-comm') / 100, km = num('r-km'), pick = num('r-pick'), mins = Math.max(1, num('r-min'));
-    const mil = Math.max(0.1, num('r-mil')), price = num('r-price'), mnt = num('r-mnt'), tgt = Math.max(0.1, num('r-tgt'));
-    const total = km + pick, unit = VEH[$('r-veh').value].unit;
-    const cut = Math.round(fare * comm), fuel = total / mil * price, maint = total * mnt, net = fare - cut - fuel - maint;
-    const perKm = total ? net / total : 0, perHr = net / (mins / 60), burn = total ? fuel / total : 0, op = total ? (fuel + maint) / total : 0;
-    $('o-net').textContent = rs(net);
-    $('o-expl').textContent = `Your in-hand earning after fuel (${rs(fuel)}), platform cut (${rs0(cut)}) and maintenance (${rs(maint)}).`;
-    $('o-cut-s').textContent = rs(cut);
-    $('o-pkm').textContent = rs(perKm) + ' / km'; $('o-pkm').className = perKm >= 0 ? 'pos' : 'neg';
-    $('o-hr').textContent = rs0(perHr) + ' / hr';
-    $('o-burn').textContent = rs(burn) + ' / km';
-    $('o-op').textContent = rs(op) + ' / km';
-    // verdict: profit per km against the driver's own target (score = share of target, out of 10)
-    const ratio = perKm / tgt, score = Math.max(0, Math.min(10, ratio * 10));
-    $('o-score').textContent = score.toFixed(1);
-    let title, sub, tip;
-    if (net < 0) { title = 'LOSS-MAKING RIDE'; sub = 'Costs more than it pays'; tip = `This ride loses ${rs(-net)}. Skip it unless the drop puts you in a busy area.`; }
-    else if (ratio >= 1) { title = 'GOOD RIDE'; sub = `Beats your ${rs(tgt)}/km target`; tip = `Above your target by ${rs(perKm - tgt)} per km.`; }
-    else if (ratio >= 0.6) { title = 'AVERAGE RIDE'; sub = 'Moderate margin'; tip = `Below your ${rs(tgt)}/km target. Worth taking if it ends near a busy zone.`; }
-    else { title = 'WEAK RIDE'; sub = 'Thin margin'; tip = `Well below your ${rs(tgt)}/km target. The empty km and fuel eat most of the fare.`; }
-    $('o-vtitle').textContent = title; $('o-vsub').textContent = sub; $('o-tip').textContent = tip;
-    $('hero').classList.toggle('loss', net < 0);
-    $('t-fuel').textContent = rs(fuel); $('t-fuel-s').textContent = `${+total.toFixed(1)} km ÷ ${mil} ${unit} × ${rs(price)}`;
-    $('t-mnt').textContent = rs(maint); $('t-mnt-s').textContent = `${rs(mnt)}/km reserve`;
-    $('t-dead').textContent = `${+pick.toFixed(1)} km`; $('t-dead-s').textContent = `${total ? pct(pick / total) : '0%'} unpaid travel`;
-    $('t-cut').textContent = rs(cut); $('t-cut-s').textContent = `${num('r-comm')}% of ${rs0(fare)}`;
+  // ---------------------------------------------------------------- the ride, worked out
+  function rideCalc() {
+    const fare = num('r-fare'), comm = num('r-comm') / 100, paidKm = Math.max(0, num('r-km')), emptyKm = Math.max(0, num('r-pick')), mins = Math.max(1, num('r-min'));
+    const mil = Math.max(0.1, num('r-mil')), price = num('r-price'), upk = num('r-mnt'), tgt = Math.max(0.1, num('r-tgt')), km = paidKm + emptyKm;
+    const cut = Math.round(fare * comm), fuel = km / mil * price, maint = km * upk, net = fare - cut - fuel - maint;
+    return { fare, comm, paidKm, emptyKm, mins, mil, price, upk, tgt, km, cut, fuel, maint, net, perKm: km ? net / km : 0, perHr: net / (mins / 60), burn: km ? fuel / km : 0, op: km ? (fuel + maint) / km : 0, unit: VEH[$('r-veh').value].mu };
   }
 
-  function day() {
+  // ---------------------------------------------------------------- route map: empty run to the pickup (dashed), then the paid ride (amber)
+  const NS = 'http://www.w3.org/2000/svg', map = $('map'), GX = 20, GY = 11, OX = 20, OY = 22;
+  const el = (tag, attrs, parent = map) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+  let cell = 30;
+  // seeded random so the same ride always draws the same route
+  const rng = (seed) => { let a = seed >>> 0 || 1; return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  // a leg of n blocks along the roads, turning at random, staying inside the map
+  function leg(from, n, r, startH) {
+    const pts = [from.slice()]; let p = from.slice(), rem = n, h = startH;
+    while (rem > 0) {
+      const max = h ? 7 : 4, seg = Math.min(rem, 1 + Math.floor(r() * max));
+      let s = r() < 0.5 ? -1 : 1; const lim = h ? GX : GY, i = h ? 0 : 1;
+      if (p[i] + s * seg < 0 || p[i] + s * seg > lim) s = -s;
+      const go = Math.max(0, Math.min(seg, s > 0 ? lim - p[i] : p[i]));
+      if (go > 0) { p = p.slice(); p[i] += s * go; pts.push(p); rem -= go; } else rem -= 0;
+      h = !h;
+      if (go === 0 && pts.length > 400) break;
+    }
+    return pts;
+  }
+  const lenOf = (pts) => pts.slice(1).reduce((s, q, i) => s + Math.abs(q[0] - pts[i][0]) + Math.abs(q[1] - pts[i][1]), 0);
+  const at = (pts, d) => { for (let i = 1; i < pts.length; i++) { const s = Math.abs(pts[i][0] - pts[i - 1][0]) + Math.abs(pts[i][1] - pts[i - 1][1]); if (d <= s) { const k = s ? d / s : 0; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * k, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k]; } d -= s; } return pts[pts.length - 1]; };
+  const upto = (pts, d) => { const out = [pts[0]]; for (let i = 1; i < pts.length; i++) { const s = Math.abs(pts[i][0] - pts[i - 1][0]) + Math.abs(pts[i][1] - pts[i - 1][1]); if (d <= s) { out.push(at([pts[i - 1], pts[i]], d)); return out; } out.push(pts[i]); d -= s; } return out; };
+  const P = (p) => `${OX + p[0] * cell},${OY + p[1] * cell}`;
+
+  let anim = null;
+  function buildMap(R) {
+    while (map.firstChild) map.removeChild(map.firstChild);
+    cell = 30;
+    for (let y = 0; y <= GY; y++) el('line', { x1: OX, x2: OX + GX * cell, y1: OY + y * cell, y2: OY + y * cell, stroke: '#183248', 'stroke-width': y % 3 ? 5 : 10, 'stroke-linecap': 'round' });
+    for (let x = 0; x <= GX; x++) el('line', { x1: OX + x * cell, x2: OX + x * cell, y1: OY, y2: OY + GY * cell, stroke: '#183248', 'stroke-width': x % 3 ? 5 : 10, 'stroke-linecap': 'round' });
+    // blocks are drawn in whole km (the meters count the exact km)
+    const r = rng(Math.round(R.emptyKm * 10) * 7919 + Math.round(R.paidKm * 10) * 131 + 17);
+    const scale = R.km > 60 ? 60 / R.km : 1;          // very long trips are drawn shorter, so they still fit the screen
+    const nE = R.emptyKm > 0 ? Math.max(1, Math.round(R.emptyKm * scale)) : 0, nP = R.paidKm > 0 ? Math.max(1, Math.round(R.paidKm * scale)) : 0;
+    const start = [2 + Math.floor(r() * 4), 7 + Math.floor(r() * 3)];
+    const eLeg = nE ? leg(start, nE, r, true) : [start];
+    const pLeg = nP ? leg(eLeg[eLeg.length - 1], nP, r, false) : [eLeg[eLeg.length - 1]];
+    const g = {};
+    g.eTrail = el('polyline', { fill: 'none', stroke: '#C9D3DC', 'stroke-width': 5, 'stroke-dasharray': '9 10', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.9 });
+    g.pTrail = el('polyline', { fill: 'none', stroke: '#FFB02E', 'stroke-width': 8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', style: 'filter: drop-shadow(0 0 6px #FFB02E)' });
+    // start: the taxi's position when the request comes in
+    el('circle', { cx: OX + start[0] * cell, cy: OY + start[1] * cell, r: 7, fill: '#3FD0FF' });
+    const pin = eLeg[eLeg.length - 1], drop = pLeg[pLeg.length - 1];
+    g.pickup = el('g', { opacity: 0 }); el('circle', { cx: OX + pin[0] * cell, cy: OY + pin[1] * cell, r: 11, fill: '#38E07B', stroke: '#04140A', 'stroke-width': 4 }, g.pickup);
+    g.drop = el('g', { opacity: 0 }); el('rect', { x: OX + drop[0] * cell - 10, y: OY + drop[1] * cell - 10, width: 20, height: 20, rx: 4, fill: '#FFB02E', stroke: '#241400', 'stroke-width': 4 }, g.drop);
+    g.tag = el('text', { x: 0, y: 0, 'text-anchor': 'middle', fill: '#C9D3DC', stroke: '#071018', 'stroke-width': 6, 'paint-order': 'stroke', style: "font: 600 13px 'IBM Plex Mono', monospace; letter-spacing: 2px" });
+    g.car = el('circle', { r: 13, fill: '#F6C21C', stroke: '#000', 'stroke-width': 4 });
+    return { eLeg, pLeg, lenE: lenOf(eLeg), lenP: lenOf(pLeg), g };
+  }
+
+  function setWallet(fareIn, out) {
+    $('v-in').textContent = '+' + rs0(fareIn);
+    $('v-out').textContent = '−' + rs0(out);
+    const net = fareIn - out;
+    $('v-net').textContent = rs0(net);
+    $('c-net').classList.toggle('loss', net < 0);
+  }
+  const flash = (id) => { const c = $(id); c.classList.add('flash'); setTimeout(() => c.classList.remove('flash'), 450); };
+
+  function results(R) {
+    $('s-fare').textContent = rs(R.fare);
+    $('s-cut').textContent = '−' + rs(R.cut); $('s-cut-s').textContent = `${num('r-comm')}% of ${rs0(R.fare)}`;
+    $('s-fuel').textContent = '−' + rs(R.fuel); $('s-fuel-s').textContent = `${+R.km.toFixed(1)} km ÷ ${R.mil} ${R.unit} × ${rs(R.price)}`;
+    $('s-mnt').textContent = '−' + rs(R.maint); $('s-mnt-s').textContent = `${+R.km.toFixed(1)} km × ${rs(R.upk)}`;
+    $('s-net').textContent = rs(R.net); $('s-net').className = R.net < 0 ? 'neg' : 'pos';
+    $('stamp').textContent = R.net < 0 ? 'LOSS ' + rs0(-R.net) : 'KEEPS ' + rs0(R.net); $('stamp').classList.toggle('loss', R.net < 0);
+    $('e-pkm').textContent = rs(R.perKm); $('e-pkm').style.color = R.perKm >= R.tgt ? 'var(--green)' : R.perKm < 0 ? 'var(--red)' : 'var(--white)';
+    $('e-hr').textContent = rs0(R.perHr);
+    $('e-burn').textContent = rs(R.burn);
+    $('e-op').textContent = rs(R.op);
+    // verdict: profit per km as a share of the driver's own target, out of 10
+    const ratio = R.perKm / R.tgt, score = Math.max(0, Math.min(10, ratio * 10)), v = $('verdict');
+    $('v-score').textContent = score.toFixed(1);
+    v.classList.toggle('good', R.net >= 0 && ratio >= 1); v.classList.toggle('bad', R.net < 0 || ratio < 0.6);
+    let t, s;
+    if (R.net < 0) { t = 'Loss-making ride'; s = `Costs ${rs(-R.net)} more than it pays.`; }
+    else if (ratio >= 1) { t = 'Good ride'; s = `Beats your ${rs(R.tgt)}/km target by ${rs(R.perKm - R.tgt)}.`; }
+    else if (ratio >= 0.6) { t = 'Average ride'; s = `Below your ${rs(R.tgt)}/km target. Take it if the drop is near a busy area.`; }
+    else { t = 'Weak ride'; s = `Well below your ${rs(R.tgt)}/km target. Empty km and fuel eat the fare.`; }
+    $('v-title').textContent = t; $('v-sub').textContent = s;
+  }
+
+  // ---------------------------------------------------------------- run the trip: the taxi drives, the meters and the wallet count along
+  function runTrip() {
+    if (anim) cancelAnimationFrame(anim.raf);
+    const R = rideCalc(), M = buildMap(R);
+    results(R);
+    $('stamp').classList.remove('on');
+    $('w-mode').textContent = 'One ride';
+    const tE = R.emptyKm ? Math.min(2.2, 0.6 + R.emptyKm * 0.12) : 0, tP = R.paidKm ? Math.min(3.6, 0.9 + R.paidKm * 0.12) : 0, total = tE + tP;
+    const costPerKm = R.km ? (R.fuel + R.maint) / R.km : 0, fuelPerKm = R.km ? R.fuel / R.km : 0;
+    let dropped = false, picked = false;
+    const frame = (now) => {
+      if (!anim.t0) anim.t0 = now;
+      const t = reduce ? total + 1 : (now - anim.t0) / 1000;
+      const uE = tE ? Math.min(1, t / tE) : 1, uP = tP ? Math.max(0, Math.min(1, (t - tE) / tP)) : 1;
+      const kmE = R.emptyKm * uE, kmP = R.paidKm * uP, kmNow = kmE + kmP;
+      M.g.eTrail.setAttribute('points', upto(M.eLeg, M.lenE * uE).map(P).join(' '));
+      M.g.pTrail.setAttribute('points', uP > 0 ? upto(M.pLeg, M.lenP * uP).map(P).join(' ') : '');
+      const onPaid = uE >= 1 && R.paidKm > 0, pos = onPaid ? at(M.pLeg, M.lenP * uP) : at(M.eLeg, M.lenE * uE);
+      M.g.car.setAttribute('cx', OX + pos[0] * cell); M.g.car.setAttribute('cy', OY + pos[1] * cell);
+      M.g.car.style.filter = `drop-shadow(0 0 10px ${onPaid ? '#FFB02E' : '#C9D3DC'})`;
+      M.g.tag.setAttribute('x', OX + pos[0] * cell); M.g.tag.setAttribute('y', OY + pos[1] * cell - 22);
+      M.g.tag.setAttribute('fill', onPaid ? '#FFB02E' : '#C9D3DC');
+      M.g.tag.textContent = uP >= 1 ? '' : onPaid ? 'PASSENGER' : 'EMPTY';
+      if (uE >= 1 && !picked) { picked = true; M.g.pickup.setAttribute('opacity', 1); }
+      $('m-empty').textContent = (+kmE.toFixed(1)).toString();
+      $('m-paid').textContent = (+kmP.toFixed(1)).toString();
+      $('m-fuel').textContent = rs0(kmNow * fuelPerKm);
+      $('phase').textContent = uP >= 1 ? 'Dropped' : onPaid ? 'On trip' : 'To pickup';
+      $('statusline').textContent = uP >= 1 ? `${+R.km.toFixed(1)} km driven · ${+R.emptyKm.toFixed(1)} km paid by nobody (${R.km ? Math.round(R.emptyKm / R.km * 100) : 0}%)` : onPaid ? 'Passenger on board · meter running' : 'Driving empty to the pickup';
+      // wallet: costs run with every km; the fare lands at the drop, and the app takes its cut then
+      if (uP >= 1 && !dropped) { dropped = true; M.g.drop.setAttribute('opacity', 1); flash('c-in'); flash('c-out'); flash('c-net'); $('stamp').classList.add('on'); }
+      setWallet(dropped ? R.fare : 0, kmNow * costPerKm + (dropped ? R.cut : 0));
+      if (t < total + 0.05) anim.raf = requestAnimationFrame(frame);
+    };
+    anim = { t0: 0, raf: requestAnimationFrame(frame) };
+  }
+
+  // ---------------------------------------------------------------- full day
+  function dayCalc() {
     const earn = num('d-earn'), comm = num('d-comm') / 100, km = num('d-km'), mil = Math.max(0.1, num('d-mil')), price = num('d-price');
-    const mnt = num('d-mnt'), emi = num('d-emi'), ins = num('d-ins'), days = Math.max(1, num('d-days'));
-    const pay = earn - Math.round(earn * comm), fuel = km / mil * price, maint = km * mnt, insD = ins / days, tp = pay - fuel - maint - emi - insD;
-    $('w-pay').textContent = rs0(pay); $('w-pay-s').textContent = `${rs0(earn)} − ${num('d-comm')}% platform cut`;
+    const upk = num('d-mnt'), emi = num('d-emi'), ins = num('d-ins'), days = Math.max(1, num('d-days'));
+    const pay = earn - Math.round(earn * comm), fuel = km / mil * price, maint = km * upk, insD = ins / days, tp = pay - fuel - maint - emi - insD;
+    $('w-pay').textContent = rs0(pay); $('w-pay-s').textContent = `${rs0(earn)} − ${num('d-comm')}% app cut`;
     $('w-fuel').textContent = '−' + rs0(fuel); $('w-fuel-s').textContent = `${km} km ÷ ${mil} × ${rs(price)}`;
-    $('w-mnt').textContent = '−' + rs0(maint); $('w-mnt-s').textContent = `${km} km × ${rs(mnt)}/km`;
+    $('w-mnt').textContent = '−' + rs0(maint); $('w-mnt-s').textContent = `${km} km × ${rs(upk)}/km`;
     $('w-emi').textContent = '−' + rs0(emi);
     $('w-ins').textContent = '−' + rs0(insD); $('w-ins-s').textContent = `${rs0(ins)} a year ÷ ${days} days`;
     $('w-true').textContent = rs0(tp); $('w-true').className = tp < 0 ? 'neg' : 'pos';
-    $('w-note').textContent = tp < 0 ? `A loss of ${rs0(-tp)} a day` : `Kept per day, after every cost`;
+    $('w-note').textContent = tp < 0 ? `A loss of ${rs0(-tp)} a day` : 'Kept per day, after every cost';
+    $('d-stamp').textContent = (tp < 0 ? 'LOSS ' : 'KEEPS ') + rs0(Math.abs(tp)); $('d-stamp').classList.toggle('loss', tp < 0);
+    $('d-phase').textContent = tp < 0 ? 'Running at a loss' : 'In profit';
+    return { earn, out: earn - tp };
   }
 
-  // remember the viewer's own numbers on this device (optional; works without it)
-  const IDS = ['r-comm', 'r-veh', 'r-fare', 'r-km', 'r-pick', 'r-min', 'r-mil', 'r-price', 'r-mnt', 'r-tgt', 'd-earn', 'd-comm', 'd-km', 'd-mil', 'd-price', 'd-mnt', 'd-emi', 'd-ins', 'd-days'];
-  const KEY = 'cab-profit-calculator-v1';
+  // ---------------------------------------------------------------- inputs: remember on this device, replay the trip after typing stops
+  const IDS = ['r-fare', 'r-pick', 'r-km', 'r-min', 'r-comm', 'r-veh', 'r-mil', 'r-price', 'r-mnt', 'r-tgt', 'd-earn', 'd-comm', 'd-km', 'd-mil', 'd-price', 'd-mnt', 'd-emi', 'd-ins', 'd-days'];
+  const KEY = 'taxi-wallet-calculator-v1';
   try { const saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) IDS.forEach((id) => { if (saved[id] != null) $(id).value = saved[id]; }); } catch (e) {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(IDS.map((id) => [id, $(id).value])))); } catch (e) {} };
-
-  applyVehicle(true);
-  IDS.forEach((id) => $(id).addEventListener('input', () => { ride(); day(); save(); }));
-  $('r-veh').addEventListener('change', () => { applyVehicle(false); ride(); save(); });
-  $('fare-chips').addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (!b) return; $('r-fare').value = b.textContent.replace(/[^\d.]/g, ''); ride(); save(); });
+  let tab = 'ride', timer = null;
+  const later = () => { clearTimeout(timer); timer = setTimeout(runTrip, 450); };
+  IDS.filter((id) => id[0] === 'r').forEach((id) => $(id).addEventListener('input', () => { save(); results(rideCalc()); later(); }));
+  IDS.filter((id) => id[0] === 'd').forEach((id) => $(id).addEventListener('input', () => { save(); const d = dayCalc(); if (tab === 'day') setWallet(d.earn, d.out); }));
+  $('r-veh').addEventListener('change', () => { applyVehicle(true); save(); later(); });
+  $('fare-chips').addEventListener('click', (e) => { const b = e.target.closest('.chip'); if (!b) return; $('r-fare').value = b.textContent.replace(/[^\d.]/g, ''); save(); later(); });
+  // on a phone the map is below the trip sheet: bring it into view, then run
+  $('go').addEventListener('click', () => {
+    const nav = $('map').closest('.screen'), r = nav.getBoundingClientRect();
+    if (r.top > window.innerHeight * 0.6 || r.bottom < 0) nav.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    runTrip();
+  });
+  $('replay').addEventListener('click', runTrip);
 
   const show = (which) => {
+    tab = which;
     ['ride', 'day'].forEach((k) => { $(k).hidden = k !== which; $('tab-' + k).setAttribute('aria-selected', String(k === which)); });
+    $('l-in').textContent = which === 'day' ? 'App earnings' : 'Fare in';
+    if (which === 'day') { if (anim) cancelAnimationFrame(anim.raf); $('w-mode').textContent = 'Full day'; const d = dayCalc(); setWallet(d.earn, d.out); }
+    else runTrip();
     try { history.replaceState(null, '', which === 'day' ? '#day' : '#ride'); } catch (e) {}
   };
   $('tab-ride').addEventListener('click', () => show('ride'));
   $('tab-day').addEventListener('click', () => show('day'));
+  applyVehicle(false);
+  dayCalc();
   show(location.hash === '#day' ? 'day' : 'ride');
-  ride(); day();
 })();
 </script>
 </body>
